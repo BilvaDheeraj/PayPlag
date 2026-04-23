@@ -207,7 +207,7 @@ export default function AIDetectorPage() {
                   </div>
                 </div>
 
-                {/* Sentence-level breakdown */}
+                {/* Document View - Highlighted Text */}
                 {result.sentences && result.sentences.length > 0 && (
                   <div style={{
                     background: 'var(--bg-card)',
@@ -217,44 +217,23 @@ export default function AIDetectorPage() {
                   }}>
                     <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
                       <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem' }}>
-                        Sentence Analysis ({result.sentences.length} sentences)
+                        Document View
                       </h2>
                     </div>
-                    <div style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ padding: '1.5rem', lineHeight: 1.8, fontSize: '1rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
                       {result.sentences.map((s, i) => (
-                        <div key={i} style={{
-                          padding: '0.875rem 1rem',
-                          background: s.label === 'AI'
-                            ? 'rgba(255,68,102,0.06)'
-                            : 'rgba(0,255,156,0.04)',
-                          border: `1px solid ${s.label === 'AI' ? 'rgba(255,68,102,0.2)' : 'rgba(0,255,156,0.15)'}`,
-                          borderLeft: `3px solid ${s.label === 'AI' ? 'var(--accent-danger)' : 'var(--accent-success)'}`,
-                          borderRadius: '0 var(--radius-sm) var(--radius-sm) 0',
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem',
-                        }}>
-                          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, flex: 1 }}>
-                            {s.sentence}
-                          </span>
-                          <div style={{
-                            flexShrink: 0,
-                            display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem',
-                          }}>
-                            <span style={{
-                              padding: '0.15rem 0.5rem',
-                              background: s.label === 'AI' ? 'rgba(255,68,102,0.15)' : 'rgba(0,255,156,0.15)',
-                              border: `1px solid ${s.label === 'AI' ? 'rgba(255,68,102,0.35)' : 'rgba(0,255,156,0.35)'}`,
-                              borderRadius: 'var(--radius-full)',
-                              fontSize: '0.7rem', fontWeight: 700,
-                              color: s.label === 'AI' ? 'var(--accent-danger)' : 'var(--accent-success)',
-                              fontFamily: 'var(--font-mono)',
-                            }}>
-                              {s.label}
-                            </span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                              {s.score}%
-                            </span>
-                          </div>
-                        </div>
+                        <span
+                          key={i}
+                          style={{
+                            backgroundColor: s.label === 'AI' ? 'rgba(255, 68, 102, 0.15)' : 'transparent',
+                            color: s.label === 'AI' ? 'var(--accent-danger)' : 'inherit',
+                            padding: s.label === 'AI' ? '0.1rem 0' : '0',
+                            borderRadius: '3px',
+                          }}
+                          title={s.label === 'AI' ? `AI Probability: ${s.score}%` : undefined}
+                        >
+                          {s.sentence}{' '}
+                        </span>
                       ))}
                     </div>
                   </div>

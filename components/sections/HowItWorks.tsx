@@ -174,7 +174,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
         }}
         style={{
           width: '44%',
-          background: `linear-gradient(145deg, ${step.accentBg}, rgba(20,20,32,0.95))`,
+          background: `var(--bg-card)`,
           border: `1px solid ${step.color}30`,
           borderRadius: 24,
           padding: '2rem 2rem 1.75rem',
@@ -268,7 +268,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
           fontFamily: 'var(--font-display)',
           fontSize: '1.3rem',
           fontWeight: 700,
-          color: '#F0F0F5',
+          color: 'var(--text-primary)',
           marginBottom: '0.625rem',
           lineHeight: 1.25,
         }}>
@@ -277,7 +277,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
 
         {/* Desc */}
         <p style={{
-          color: 'rgba(160,160,180,0.85)',
+          color: 'var(--text-secondary)',
           fontSize: '0.875rem',
           lineHeight: 1.65,
           marginBottom: '1.25rem',
@@ -325,7 +325,7 @@ function StepCard({ step, index }: { step: typeof steps[0]; index: number }) {
           width: 44,
           height: 44,
           borderRadius: '50%',
-          background: `radial-gradient(circle, ${step.color}30, rgba(10,10,15,0.95))`,
+          background: `var(--bg-primary)`,
           border: `2px solid ${step.color}`,
           display: 'flex',
           alignItems: 'center',
@@ -386,10 +386,10 @@ export function HowItWorks() {
             display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
             padding: '0.375rem 0.875rem',
             background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            border: '1px solid var(--border-default)',
             borderRadius: 999,
             fontSize: '0.8rem', fontWeight: 500,
-            color: 'rgba(160,160,180,0.9)',
+            color: 'var(--text-secondary)',
             marginBottom: '1rem',
           }}>
             <span style={{
@@ -404,12 +404,12 @@ export function HowItWorks() {
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(2.25rem, 5vw, 3.5rem)',
             fontWeight: 700,
-            color: '#F0F0F5',
+            color: 'var(--text-primary)',
             lineHeight: 1.1,
           }}>
             How It{' '}
             <span style={{
-              background: 'linear-gradient(90deg, #00E5FF, #00FF9C)',
+              background: 'var(--gradient-text-hero)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -442,7 +442,7 @@ export function HowItWorks() {
               transform: 'translateX(-50%)',
               width: 2,
               borderRadius: 2,
-              background: 'linear-gradient(180deg, #00E5FF, #FFB347, #00FF9C, #FF6B9D)',
+              background: 'var(--gradient-text-hero)',
               height: lineHeight,
               originY: 0,
             }}
@@ -478,12 +478,12 @@ export function HowItWorks() {
           <p style={{ color: 'rgba(160,160,180,0.7)', fontSize: '0.9rem' }}>
             Ready to try it yourself?
           </p>
-          <a
+            <a
             href="/signup"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
               padding: '0.875rem 2.25rem',
-              background: 'linear-gradient(135deg, #FFB347, #FF6B6B)',
+              background: 'var(--gradient-cta)',
               borderRadius: 999,
               color: 'white',
               fontWeight: 700,

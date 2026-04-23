@@ -1,4 +1,4 @@
-import { getSupabaseAdmin } from '@/lib/supabase'
+import { getSupabaseAdmin } from '@/lib/supabase-server'
 
 export async function consumeToken(checkToken: string, expectedTool: string) {
   const { data: tokenData, error } = await getSupabaseAdmin()

@@ -96,7 +96,7 @@ export function HeroSection() {
         top: '30%', left: '50%',
         transform: 'translate(-50%, -50%)',
         width: '800px', height: '600px',
-        background: 'radial-gradient(ellipse at center, rgba(0,229,255,0.08) 0%, transparent 70%)',
+        background: 'var(--hero-glow)',
         pointerEvents: 'none', zIndex: 1,
       }} />
 
@@ -154,7 +154,7 @@ export function HeroSection() {
                   <span
                     className="gradient-text shimmer"
                     style={{
-                      background: 'linear-gradient(90deg, #00E5FF, #00FF9C, #00E5FF)',
+                      background: 'var(--gradient-text-hero)',
                       backgroundSize: '200% auto',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',

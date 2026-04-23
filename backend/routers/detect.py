@@ -1,113 +1,24 @@
 """
 AI Content Detection Router
-3-layer detection: Perplexity analysis + Burstiness + Semantic patterns
-Uses HuggingFace transformers for local inference
+Uses Anthropic's Claude 3.5 Sonnet to accurately classify text as AI or Human.
 """
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-import re, math, logging
-from collections import Counter
+import os, json, logging, re
+import anthropic
 
 router = APIRouter()
 logger = logging.getLogger("payplag.detect")
 
-_model = None
-_tokenizer = None
-
-
-def get_model():
-    global _model, _tokenizer
-    if _model is None:
-        try:
-            from transformers import GPT2LMHeadModel, GPT2TokenizerFast
-            import torch
-            _tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-            _model = GPT2LMHeadModel.from_pretrained("gpt2")
-            _model.eval()
-            logger.info("GPT-2 model loaded for AI detection")
-        except Exception as e:
-            logger.error(f"Failed to load model: {e}")
-    return _model, _tokenizer
-
+ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 class DetectRequest(BaseModel):
     text: str
 
-
 def split_sentences(text: str) -> list[str]:
     sentences = re.split(r'(?<=[.!?])\s+', text.strip())
     return [s.strip() for s in sentences if len(s.strip().split()) >= 3]
-
-
-def compute_perplexity(text: str) -> float:
-    """Compute perplexity using GPT-2. Low perplexity → likely AI."""
-    model, tokenizer = get_model()
-    if model is None:
-        return 50.0  # neutral fallback
-
-    try:
-        import torch
-        inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
-        with torch.no_grad():
-            outputs = model(**inputs, labels=inputs["input_ids"])
-            loss = outputs.loss.item()
-        return math.exp(min(loss, 20))
-    except Exception as e:
-        logger.error(f"Perplexity error: {e}")
-        return 50.0
-
-
-def compute_burstiness(sentences: list[str]) -> float:
-    """
-    AI text tends to have uniform sentence length (low burstiness).
-    Returns a burstiness score — low → more likely AI.
-    """
-    if len(sentences) < 3:
-        return 50.0
-    lengths = [len(s.split()) for s in sentences]
-    mean = sum(lengths) / len(lengths)
-    variance = sum((l - mean) ** 2 for l in lengths) / len(lengths)
-    std = math.sqrt(variance)
-    cv = std / max(mean, 1)
-    # High CV = human-like, Low CV = AI-like
-    return min(cv * 100, 100)
-
-
-def ai_score_from_metrics(perplexity: float, burstiness: float) -> float:
-    """
-    Combine perplexity and burstiness into a 0-100 AI probability score.
-    - Low perplexity (<50) → high AI score
-    - Low burstiness (<20) → high AI score
-    """
-    # Normalize perplexity: <30 → very AI, >500 → very human
-    ppl_score = max(0, min(100, 100 - (perplexity / 5)))
-    # Burstiness: 0-100, low = AI
-    burst_score = max(0, 100 - burstiness)
-    return round(ppl_score * 0.65 + burst_score * 0.35, 1)
-
-
-def classify_sentence(sentence: str, overall_score: float) -> dict:
-    """Classify each sentence as ai/human/uncertain with probability."""
-    # Quick heuristics for sentence-level classification
-    ppl = compute_perplexity(sentence)
-    score = max(0, min(100, 100 - (ppl / 5)))
-
-    # Adjust by overall doc score
-    blended = round(score * 0.7 + overall_score * 0.3, 1)
-
-    label = "uncertain"
-    if blended >= 65:
-        label = "ai"
-    elif blended <= 35:
-        label = "human"
-
-    return {
-        "sentence": sentence,
-        "aiProbability": blended,
-        "label": label,
-    }
-
 
 @router.post("/detect")
 async def detect_ai(req: DetectRequest):
@@ -119,37 +30,95 @@ async def detect_ai(req: DetectRequest):
     if not sentences:
         raise HTTPException(status_code=400, detail="Could not parse sentences")
 
-    # Layer 1: Document-level perplexity
-    perplexity = compute_perplexity(text[:1500])
+    if not ANTHROPIC_KEY:
+        raise HTTPException(status_code=500, detail="Anthropic API key not configured")
 
-    # Layer 2: Burstiness
-    burstiness = compute_burstiness(sentences)
-
-    # Layer 3: Combined score
-    overall_score = ai_score_from_metrics(perplexity, burstiness)
-
-    # Verdict
-    if overall_score >= 75:
-        verdict = "Very Likely AI Generated"
-        confidence = "High"
-    elif overall_score >= 50:
-        verdict = "Likely AI Generated"
-        confidence = "Medium"
-    elif overall_score >= 30:
-        verdict = "Possibly Mixed Content"
-        confidence = "Low"
-    else:
-        verdict = "Likely Human Written"
-        confidence = "High"
-
-    # Sentence breakdown
-    sentence_results = [classify_sentence(s, overall_score) for s in sentences[:50]]
-
-    return {
-        "overallScore": round(overall_score, 1),
-        "verdict": verdict,
-        "confidence": confidence,
-        "perplexity": round(perplexity, 2),
-        "burstiness": round(burstiness, 2),
-        "sentences": sentence_results,
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+        
+        system_prompt = """You are an advanced AI detection system. 
+Analyze the provided text to determine if it was written by an AI or a Human.
+Return the result as a strict JSON object with the following structure:
+{
+  "overallScore": <float 0-100, where 100 is definitely AI and 0 is definitely Human>,
+  "sentences": [
+    {
+      "sentence": "<exact sentence from text>",
+      "score": <float 0-100, AI probability>,
+      "label": "<either 'AI' or 'Human'>"
     }
+  ]
+}
+Do not output any markdown formatting like ```json. Output raw JSON only. Ensure the sentences in the JSON exactly match the original text sentences. Analyze each sentence individually.
+"""
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=4096,
+            temperature=0.0,
+            system=system_prompt,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Analyze this text:\n\n{text}"
+                }
+            ],
+        )
+
+        response_text = message.content[0].text.strip()
+        # Clean up if claude outputs markdown
+        if response_text.startswith("```json"):
+            response_text = response_text[7:]
+        if response_text.startswith("```"):
+            response_text = response_text[3:]
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+        
+        try:
+            analysis = json.loads(response_text)
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse Claude JSON: {response_text}")
+            raise HTTPException(status_code=500, detail="Failed to parse AI detection results")
+
+        overall_score = float(analysis.get("overallScore", 0))
+        
+        # Verdict
+        if overall_score >= 75:
+            verdict = "Very Likely AI Generated"
+            confidence = "High"
+        elif overall_score >= 50:
+            verdict = "Likely AI Generated"
+            confidence = "Medium"
+        elif overall_score >= 30:
+            verdict = "Possibly Mixed Content"
+            confidence = "Low"
+        else:
+            verdict = "Likely Human Written"
+            confidence = "High"
+
+        # Construct sentences mapping
+        sentence_results = []
+        parsed_sentences = analysis.get("sentences", [])
+        
+        # We need to map Claude's output to our sentences or just use Claude's directly
+        for s in parsed_sentences:
+            sentence_results.append({
+                "sentence": s.get("sentence", ""),
+                "aiProbability": float(s.get("score", 0)),
+                "label": s.get("label", "Human")
+            })
+
+        return {
+            "overallScore": round(overall_score, 1),
+            "verdict": verdict,
+            "confidence": confidence,
+            "perplexity": 0, # Legacy field, can be 0
+            "burstiness": 0, # Legacy field, can be 0
+            "sentences": sentence_results,
+        }
+
+    except anthropic.APIError as e:
+        logger.error(f"Anthropic API error: {e}")
+        raise HTTPException(status_code=502, detail=f"AI service error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Detection error: {e}")
+        raise HTTPException(status_code=500, detail="AI detection failed")

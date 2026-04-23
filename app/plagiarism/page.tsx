@@ -201,6 +201,40 @@ export default function PlagiarismPage() {
                     </div>
                   </div>
                 </div>
+                {/* Document View - Highlighted Text */}
+                {result.matches.length > 0 && (
+                  <div style={{
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-default)',
+                    borderRadius: 'var(--radius-lg)',
+                    overflow: 'hidden',
+                    marginBottom: '1.5rem',
+                  }}>
+                    <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-subtle)' }}>
+                      <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem' }}>
+                        Document View
+                      </h2>
+                    </div>
+                    <div style={{ padding: '1.5rem', lineHeight: 1.8, fontSize: '1rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>
+                      {text.split(/(?<=[.!?])\s+/).map((s, i) => {
+                        const isPlagiarized = result.matches.some(m => m.sentence === s.trim());
+                        return (
+                          <span
+                            key={i}
+                            style={{
+                              backgroundColor: isPlagiarized ? 'rgba(255, 68, 102, 0.15)' : 'transparent',
+                              color: isPlagiarized ? 'var(--accent-danger)' : 'inherit',
+                              padding: isPlagiarized ? '0.1rem 0' : '0',
+                              borderRadius: '3px',
+                            }}
+                          >
+                            {s}{' '}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {/* Matches */}
                 {result.matches.length > 0 && (
